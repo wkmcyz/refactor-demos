@@ -35,7 +35,7 @@ class AuthCdnDownloader : IDownloader {
         info: DownloadInfo,
         hasUpdateAuth: Boolean
     ): Boolean {
-        var needUpdateAuth = false
+
         for (cdnInfo in cdnInfos) {
             var response: Response = null
             try {
