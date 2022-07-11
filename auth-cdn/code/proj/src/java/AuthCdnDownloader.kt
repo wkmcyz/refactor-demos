@@ -30,32 +30,41 @@ class AuthCdnDownloader : IDownloader {
         return innerDownload(info, false)
     }
 
+    enum class TryDownloadResult {
+        AUTH_FAILED,
+        SUCCESS,
+        FAILED
+    }
 
     private fun innerDownload(
         info: DownloadInfo,
         hasUpdateAuth: Boolean
     ): Boolean {
 
+        var tryDownloadResult: TryDownloadResult = null
         for (cdnInfo in cdnInfos) {
             var response: Response = null
             try {
                 response = cdnService.download()
             } catch (e: Exception) {
                 // 发生 Exception，也重试一次
-                continue
+                tryDownloadResult = TryDownloadResult.FAILED
             }
             // 成功了可以直接返回
             if (response.isSuccessful()) {
-                return true
+                tryDownloadResult = TryDownloadResult.SUCCESS
+                break
             }
             // 失败了，且是第一次 403 才会去更新 auth
-            if (response.is403() && !hasUpdateAuth) {
-                needUpdateAuth = true
+            else if (response.is403() && !hasUpdateAuth) {
+                tryDownloadResult = TryDownloadResult.AUTH_FAILED
                 break
             }
             // 其他失败情况，就换个 url 再试
         }
-        if (needUpdateAuth) {
+        if (tryDownloadResult == TryDownloadResult.SUCCESS) {
+            return true
+        } else if (tryDownloadResult == TryDownloadResult.AUTH_FAILED) {
             // 更新 auth 失败，直接算 download 失败
             return if (!updateAuth()) {
                 false
@@ -63,9 +72,10 @@ class AuthCdnDownloader : IDownloader {
                 // 更新 auth 成功，用新 auth 信息再走一遍下载流程
                 return innerDownload(info, true)
             }
+        } else {
+            // 都试完了都没成
+            return false
         }
-        // 都试完了都没成
-        return false
     }
 
     private fun updateAuth(): Boolean {
