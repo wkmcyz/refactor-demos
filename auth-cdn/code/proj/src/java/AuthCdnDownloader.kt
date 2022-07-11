@@ -27,7 +27,7 @@ class AuthCdnDownloader : IDownloader {
 
     // 不可改动
     override fun download(info: DownloadInfo): Boolean {
-        return innerDownload(info, false)
+        return innerDownload(info)
     }
 
     enum class TryDownloadResult {
@@ -58,15 +58,14 @@ class AuthCdnDownloader : IDownloader {
 
 
     private fun innerDownload(
-        info: DownloadInfo,
-        hasUpdateAuth: Boolean
+        info: DownloadInfo
     ): Boolean {
-
+        var localCdns = this.cdnInfos
         var tryDownloadResult: TryDownloadResult = null
-        for (cdnInfo in cdnInfos) {
+        for (cdnInfo in localCdns) {
             tryDownloadResult = onceDownload(cdnInfo, info)
             // 其他失败情况，就换个 url 再试
-            if (tryDownloadResult != TryDownloadResult.FAILED){
+            if (tryDownloadResult != TryDownloadResult.FAILED) {
                 break
             }
         }
@@ -74,11 +73,22 @@ class AuthCdnDownloader : IDownloader {
             return true
         } else if (tryDownloadResult == TryDownloadResult.AUTH_FAILED) {
             // 更新 auth 失败，直接算 download 失败
-            return if (!updateAuth()) {
-                false
+            val updateAuthResult = updateAuth()
+            if (!updateAuthResult) {
+                return false
+            }
+            localCdns = this.cdnInfos
+            for (cdnInfo in localCdns) {
+                tryDownloadResult = onceDownload(cdnInfo, info)
+                // 其他失败情况，就换个 url 再试
+                if (tryDownloadResult != TryDownloadResult.FAILED) {
+                    break
+                }
+            }
+            if (tryDownloadResult == TryDownloadResult.SUCCESS) {
+                return true
             } else {
-                // 更新 auth 成功，用新 auth 信息再走一遍下载流程
-                return innerDownload(info, true)
+                return false
             }
         } else {
             // 都试完了都没成
