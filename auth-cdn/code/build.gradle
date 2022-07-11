@@ -1,0 +1,42 @@
+buildscript {
+    repositories {
+        maven { url '/home/wkm/AOSP/studio-master-dev/out/repo' }
+        maven { url = "https://storage.googleapis.com/r8-releases/raw" }
+        maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
+        maven { url 'https://maven.aliyun.com/nexus/content/groups/public' }
+        maven { url 'https://mirrors.huaweicloud.com/repository/maven' }
+        maven { url 'https://4thline.org/m2' }
+        maven { url 'https://oss.sonatype.org/content/repositories/snapshots' }
+
+        gradlePluginPortal()
+        google()
+        jcenter()
+    }
+
+    dependencies {
+        classpath 'com.android.tools.build:gradle:7.1.2'
+    }
+}
+
+//// Top-level build file where you can add configuration options common to all sub-projects/modules.
+plugins {
+    id "org.jetbrains.kotlin.jvm" version "1.7.10" apply(false)
+}
+
+allprojects {
+    repositories {
+        maven { url '/home/wkm/AOSP/studio-master-dev/out/repo' }
+        maven { url = "https://storage.googleapis.com/r8-releases/raw" }
+        maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
+        maven { url 'https://maven.aliyun.com/nexus/content/groups/public' }
+        maven { url 'https://mirrors.huaweicloud.com/repository/maven' }
+        maven { url 'https://4thline.org/m2' }
+        maven { url 'https://oss.sonatype.org/content/repositories/snapshots' }
+        maven { url '/home/wkm/AOSP/studio-master-dev/out/repo' }
+        google()
+        jcenter()
+    }
+}
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}

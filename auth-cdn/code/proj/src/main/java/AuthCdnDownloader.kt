@@ -1,3 +1,18 @@
+import java.util.*
+
+
+fun <T, U> ArrayList<T>.mapUntil(map: ((T) -> U), predict: ((U) -> Boolean)): U? {
+    var result: U? = null
+    for (t in this) {
+        result = map(t)
+        if (predict(result)) {
+            return result
+        }
+    }
+    return null
+}
+
+
 /**
  *  啊,好复杂
  */
@@ -50,7 +65,7 @@ class AuthCdnDownloader : IDownloader {
             tryDownloadResult = TryDownloadResult.SUCCESS
         }
         // 失败了，且是第一次 403 才会去更新 auth
-        else if (response.is403() && !hasUpdateAuth) {
+        else if (response.is403()) {
             tryDownloadResult = TryDownloadResult.AUTH_FAILED
         }
         return tryDownloadResult
@@ -60,15 +75,14 @@ class AuthCdnDownloader : IDownloader {
     private fun innerDownload(
         info: DownloadInfo
     ): Boolean {
-        var localCdns = this.cdnInfos
-        var tryDownloadResult: TryDownloadResult = null
-        for (cdnInfo in localCdns) {
-            tryDownloadResult = onceDownload(cdnInfo, info)
-            // 其他失败情况，就换个 url 再试
-            if (tryDownloadResult != TryDownloadResult.FAILED) {
-                break
-            }
-        }
+        val tryDownloadResult = this.cdnInfos.mapUntil(
+            { cdnInfo ->
+                onceDownload(cdnInfo, info)
+            },
+            { result ->
+                result != TryDownloadResult.FAILED
+            },
+        )
         if (tryDownloadResult == TryDownloadResult.SUCCESS) {
             return true
         } else if (tryDownloadResult == TryDownloadResult.AUTH_FAILED) {
@@ -77,19 +91,15 @@ class AuthCdnDownloader : IDownloader {
             if (!updateAuthResult) {
                 return false
             }
-            localCdns = this.cdnInfos
-            for (cdnInfo in localCdns) {
-                tryDownloadResult = onceDownload(cdnInfo, info)
-                // 其他失败情况，就换个 url 再试
-                if (tryDownloadResult != TryDownloadResult.FAILED) {
-                    break
-                }
-            }
-            if (tryDownloadResult == TryDownloadResult.SUCCESS) {
-                return true
-            } else {
-                return false
-            }
+            val tryDownloadResult = this.cdnInfos.mapUntil(
+                { cdnInfo ->
+                    onceDownload(cdnInfo, info)
+                },
+                { result ->
+                    result != TryDownloadResult.FAILED
+                },
+            )
+            return tryDownloadResult == TryDownloadResult.SUCCESS
         } else {
             // 都试完了都没成
             return false
