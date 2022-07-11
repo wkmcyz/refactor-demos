@@ -36,6 +36,27 @@ class AuthCdnDownloader : IDownloader {
         FAILED
     }
 
+    private fun onceDownload(cdnInfo: CdnInfo, info: DownloadInfo): TryDownloadResult {
+        var tryDownloadResult: TryDownloadResult = null
+        var response: Response = null
+        try {
+            response = cdnService.download()
+        } catch (e: Exception) {
+            // 发生 Exception，也重试一次
+            tryDownloadResult = TryDownloadResult.FAILED
+        }
+        // 成功了可以直接返回
+        if (response.isSuccessful()) {
+            tryDownloadResult = TryDownloadResult.SUCCESS
+        }
+        // 失败了，且是第一次 403 才会去更新 auth
+        else if (response.is403() && !hasUpdateAuth) {
+            tryDownloadResult = TryDownloadResult.AUTH_FAILED
+        }
+        return tryDownloadResult
+    }
+
+
     private fun innerDownload(
         info: DownloadInfo,
         hasUpdateAuth: Boolean
@@ -43,24 +64,11 @@ class AuthCdnDownloader : IDownloader {
 
         var tryDownloadResult: TryDownloadResult = null
         for (cdnInfo in cdnInfos) {
-            var response: Response = null
-            try {
-                response = cdnService.download()
-            } catch (e: Exception) {
-                // 发生 Exception，也重试一次
-                tryDownloadResult = TryDownloadResult.FAILED
-            }
-            // 成功了可以直接返回
-            if (response.isSuccessful()) {
-                tryDownloadResult = TryDownloadResult.SUCCESS
-                break
-            }
-            // 失败了，且是第一次 403 才会去更新 auth
-            else if (response.is403() && !hasUpdateAuth) {
-                tryDownloadResult = TryDownloadResult.AUTH_FAILED
-                break
-            }
+            tryDownloadResult = onceDownload(cdnInfo, info)
             // 其他失败情况，就换个 url 再试
+            if (tryDownloadResult != TryDownloadResult.FAILED){
+                break
+            }
         }
         if (tryDownloadResult == TryDownloadResult.SUCCESS) {
             return true
