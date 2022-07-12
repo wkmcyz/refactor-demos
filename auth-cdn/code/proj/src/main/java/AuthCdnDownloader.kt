@@ -42,7 +42,18 @@ class AuthCdnDownloader : IDownloader {
 
     // 不可改动
     override fun download(info: DownloadInfo): Boolean {
-        return innerDownload(info)
+        val tryDownloadResult = tryDownload(info)
+        return when (tryDownloadResult) {
+            TryDownloadResult.SUCCESS -> {
+                true
+            }
+            TryDownloadResult.AUTH_FAILED -> {
+                reAuthAndDownload(info)
+            }
+            TryDownloadResult.TRY_NEXT_CDN, null -> {
+                false
+            }
+        }
     }
 
     enum class TryDownloadResult {
@@ -80,24 +91,6 @@ class AuthCdnDownloader : IDownloader {
                 result != TryDownloadResult.TRY_NEXT_CDN
             },
         )
-    }
-
-
-    private fun innerDownload(
-        info: DownloadInfo
-    ): Boolean {
-        val tryDownloadResult = tryDownload(info)
-        return when (tryDownloadResult) {
-            TryDownloadResult.SUCCESS -> {
-                true
-            }
-            TryDownloadResult.AUTH_FAILED -> {
-                reAuthAndDownload(info)
-            }
-            TryDownloadResult.TRY_NEXT_CDN, null -> {
-                false
-            }
-        }
     }
 
     private fun reAuthAndDownload(info: DownloadInfo): Boolean {
