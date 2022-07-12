@@ -83,26 +83,28 @@ class AuthCdnDownloader : IDownloader {
                 result != TryDownloadResult.TRY_NEXT_CDN
             },
         )
-        if (tryDownloadResult == TryDownloadResult.SUCCESS) {
-            return true
-        } else if (tryDownloadResult == TryDownloadResult.AUTH_FAILED) {
-            // 更新 auth 失败，直接算 download 失败
-            val updateAuthResult = updateAuth()
-            if (!updateAuthResult) {
-                return false
+        return when (tryDownloadResult) {
+            TryDownloadResult.SUCCESS -> {
+                true
             }
-            val tryDownloadResult = this.cdnInfos.mapUntil(
-                { cdnInfo ->
-                    onceDownload(cdnInfo, info)
-                },
-                { result ->
-                    result != TryDownloadResult.TRY_NEXT_CDN
-                },
-            )
-            return tryDownloadResult == TryDownloadResult.SUCCESS
-        } else {
-            // 都试完了都没成
-            return false
+            TryDownloadResult.AUTH_FAILED -> {
+                val updateAuthResult = updateAuth()
+                if (!updateAuthResult) {
+                    return false
+                }
+                val secondTryDownloadResult = this.cdnInfos.mapUntil(
+                    { cdnInfo ->
+                        onceDownload(cdnInfo, info)
+                    },
+                    { result ->
+                        result != TryDownloadResult.TRY_NEXT_CDN
+                    },
+                )
+                return secondTryDownloadResult == TryDownloadResult.SUCCESS
+            }
+            TryDownloadResult.TRY_NEXT_CDN, null -> {
+                false
+            }
         }
     }
 
