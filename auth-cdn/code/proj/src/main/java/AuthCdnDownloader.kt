@@ -71,11 +71,8 @@ class AuthCdnDownloader : IDownloader {
         return tryDownloadResult
     }
 
-
-    private fun innerDownload(
-        info: DownloadInfo
-    ): Boolean {
-        val tryDownloadResult = this.cdnInfos.mapUntil(
+    private fun tryDownload(info: DownloadInfo): TryDownloadResult? {
+        return this.cdnInfos.mapUntil(
             { cdnInfo ->
                 onceDownload(cdnInfo, info)
             },
@@ -83,6 +80,13 @@ class AuthCdnDownloader : IDownloader {
                 result != TryDownloadResult.TRY_NEXT_CDN
             },
         )
+    }
+
+
+    private fun innerDownload(
+        info: DownloadInfo
+    ): Boolean {
+        val tryDownloadResult = tryDownload(info)
         return when (tryDownloadResult) {
             TryDownloadResult.SUCCESS -> {
                 true
@@ -101,14 +105,7 @@ class AuthCdnDownloader : IDownloader {
         if (!updateAuthResult) {
             return false
         }
-        val secondTryDownloadResult = this.cdnInfos.mapUntil(
-            { cdnInfo ->
-                onceDownload(cdnInfo, info)
-            },
-            { result ->
-                result != TryDownloadResult.TRY_NEXT_CDN
-            },
-        )
+        val secondTryDownloadResult = tryDownload(info)
         return secondTryDownloadResult == TryDownloadResult.SUCCESS
     }
 
