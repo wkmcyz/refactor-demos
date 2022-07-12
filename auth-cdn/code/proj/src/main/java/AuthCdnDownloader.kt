@@ -48,7 +48,7 @@ class AuthCdnDownloader : IDownloader {
     enum class TryDownloadResult {
         AUTH_FAILED,
         SUCCESS,
-        FAILED
+        TRY_NEXT_CDN
     }
 
     private fun onceDownload(cdnInfo: CdnInfo, info: DownloadInfo): TryDownloadResult {
@@ -58,7 +58,7 @@ class AuthCdnDownloader : IDownloader {
             response = cdnService.download()
         } catch (e: Exception) {
             // 发生 Exception，也重试一次
-            tryDownloadResult = TryDownloadResult.FAILED
+            tryDownloadResult = TryDownloadResult.TRY_NEXT_CDN
         }
         // 成功了可以直接返回
         if (response.isSuccessful()) {
@@ -80,7 +80,7 @@ class AuthCdnDownloader : IDownloader {
                 onceDownload(cdnInfo, info)
             },
             { result ->
-                result != TryDownloadResult.FAILED
+                result != TryDownloadResult.TRY_NEXT_CDN
             },
         )
         if (tryDownloadResult == TryDownloadResult.SUCCESS) {
@@ -96,7 +96,7 @@ class AuthCdnDownloader : IDownloader {
                     onceDownload(cdnInfo, info)
                 },
                 { result ->
-                    result != TryDownloadResult.FAILED
+                    result != TryDownloadResult.TRY_NEXT_CDN
                 },
             )
             return tryDownloadResult == TryDownloadResult.SUCCESS
