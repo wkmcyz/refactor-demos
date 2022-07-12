@@ -88,24 +88,28 @@ class AuthCdnDownloader : IDownloader {
                 true
             }
             TryDownloadResult.AUTH_FAILED -> {
-                val updateAuthResult = updateAuth()
-                if (!updateAuthResult) {
-                    return false
-                }
-                val secondTryDownloadResult = this.cdnInfos.mapUntil(
-                    { cdnInfo ->
-                        onceDownload(cdnInfo, info)
-                    },
-                    { result ->
-                        result != TryDownloadResult.TRY_NEXT_CDN
-                    },
-                )
-                return secondTryDownloadResult == TryDownloadResult.SUCCESS
+                reAuthAndDownload(info)
             }
             TryDownloadResult.TRY_NEXT_CDN, null -> {
                 false
             }
         }
+    }
+
+    private fun reAuthAndDownload(info: DownloadInfo): Boolean {
+        val updateAuthResult = updateAuth()
+        if (!updateAuthResult) {
+            return false
+        }
+        val secondTryDownloadResult = this.cdnInfos.mapUntil(
+            { cdnInfo ->
+                onceDownload(cdnInfo, info)
+            },
+            { result ->
+                result != TryDownloadResult.TRY_NEXT_CDN
+            },
+        )
+        return secondTryDownloadResult == TryDownloadResult.SUCCESS
     }
 
     private fun updateAuth(): Boolean {
